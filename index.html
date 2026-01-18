@@ -1,0 +1,323 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>मुखिया पंचायत चुनाव - रोह</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        /* --- THEME COLORS --- */
+        :root {
+            --main-color: #ff9933;      
+            --top-bar-color: #138808;   
+            --btn-color: #000080;       
+            --bg-color: #f4f6f8;         
+        }
+
+        /* --- CSS --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--bg-color); padding-bottom: 70px; transition: background 0.5s; }
+
+        header { background: var(--main-color); color: white; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .top-bar { background: var(--top-bar-color); color: white; padding: 8px 15px; font-size: 0.85rem; display: flex; justify-content: space-between; font-weight: bold; }
+        
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; }
+        .logo-section { display: flex; align-items: center; gap: 10px; }
+        .logo-img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid white; background: white; object-fit: cover; }
+        #nav-title { font-size: 1.1rem; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+
+        .nav-links { list-style: none; display: flex; gap: 5px; overflow-x: auto; padding-bottom: 5px; }
+        .nav-links li { cursor: pointer; padding: 6px 10px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 0.85rem; white-space: nowrap; transition: 0.3s; border: 1px solid rgba(255,255,255,0.1); }
+        .nav-links li:hover { background: rgba(255,255,255,0.4); }
+        .nav-links li.active-btn { background: white; color: var(--main-color); font-weight: bold; }
+        .admin-link { background: #d32f2f !important; color: white !important; }
+
+        .page { display: none; padding: 15px; max-width: 800px; margin: 0 auto; animation: fadeIn 0.4s ease-in-out; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .hero-section { text-align: center; background: white; padding: 30px 15px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-top: 5px solid var(--main-color); margin-top: 10px; }
+        #main-photo { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 4px solid var(--main-color); margin-bottom: 10px; padding: 3px; background: white; }
+        #hero-name { font-size: 1.5rem; color: #333; margin-bottom: 5px; font-weight: 800; }
+        .slogan-box { background: linear-gradient(135deg, #f9f9f9, #eef2f3); padding: 15px; margin-top: 20px; border-left: 5px solid var(--top-bar-color); border-radius: 8px; text-align: left; }
+        .content-card, .event-card { background: white; padding: 20px; border-radius: 12px; border-top: 4px solid var(--main-color); box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .gallery-grid img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
+        .admin-gallery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+        .admin-img-card { position: relative; }
+        .delete-btn { background: #d32f2f; color: white; width: 100%; border: none; padding: 5px; border-radius: 0 0 5px 5px; font-size: 0.8rem; cursor: pointer; }
+
+        input, textarea { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; background: #fafafa; }
+        button { background: var(--btn-color); color: white; border: none; padding: 12px; cursor: pointer; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 15px; font-size: 1rem; }
+        .logout-btn { background: #dc3545; width: auto; padding: 6px 15px; float: right; margin-top: 0; font-size: 0.8rem; }
+        footer { text-align: center; padding: 10px; background: #222; color: #ccc; position: fixed; bottom: 0; width: 100%; font-size: 0.75rem; z-index: 999; }
+
+        @media (min-width: 600px) {
+            .gallery-grid { grid-template-columns: repeat(4, 1fr); }
+            nav { justify-content: space-between; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="top-bar">
+            <span id="live-date">...</span>
+            <span id="live-time">...</span>
+        </div>
+        <nav>
+            <div class="logo-section">
+                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Logo" id="nav-logo" class="logo-img">
+                <h2 id="nav-title">पंचायत रोह</h2>
+            </div>
+            <ul class="nav-links">
+                <li onclick="showPage('home')" id="btn-home" class="active-btn"><i class="fas fa-home"></i> होम</li>
+                <li onclick="showPage('sankalp')" id="btn-sankalp"><i class="fas fa-bullseye"></i> संकल्प</li>
+                <li onclick="showPage('gallery')" id="btn-gallery"><i class="fas fa-images"></i> गैलरी</li>
+                <li onclick="showPage('events')" id="btn-events"><i class="fas fa-calendar-alt"></i> कार्यक्रम</li>
+                <li onclick="showPage('admin')" id="btn-admin" class="admin-link"><i class="fas fa-user-lock"></i></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section id="home" class="page active">
+        <div class="hero-section">
+            <img id="main-photo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Mukhiya">
+            <h1 id="hero-name">विपेन्द्र प्रसाद सिंह</h1>
+            <h3 id="hero-alias">(उर्फ दिपु मेहता)</h3>
+            <p class="contact-info"><i class="fas fa-phone"></i> +91 <span id="hero-phone">7488417922</span></p>
+            <div class="slogan-box">
+                <h2>हमारा संकल्प</h2>
+                <p id="hero-slogan">सशक्त रोह, समृद्ध रोह</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="sankalp" class="page">
+        <h2><i class="fas fa-scroll"></i> घोषणा पत्र</h2>
+        <div class="content-card">
+            <p id="manifesto-text" style="white-space: pre-wrap; line-height: 1.6;">पंचायत के विकास के लिए समर्पित।</p>
+        </div>
+    </section>
+
+    <section id="gallery" class="page">
+        <h2 style="margin-bottom:15px;"><i class="fas fa-camera"></i> पंचायत गैलरी</h2>
+        <div class="gallery-grid" id="gallery-container">
+            <p style="padding:10px;">लोड हो रहा है...</p>
+        </div>
+    </section>
+
+    <section id="events" class="page">
+        <h2><i class="fas fa-bell"></i> आगामी कार्यक्रम</h2>
+        <div class="event-card">
+            <h3 id="event-title" style="color: var(--main-color);">जल्द अपडेट होगा</h3>
+            <p id="event-desc">विवरण...</p>
+            <hr style="margin:15px 0; border:0; border-top:1px dashed #ddd;">
+            <small id="event-date" style="font-weight:bold; color:var(--top-bar-color);">तारीख: ...</small>
+        </div>
+    </section>
+
+    <section id="admin" class="page">
+        <div id="login-section" class="content-card" style="max-width: 400px; margin: 30px auto; text-align: center;">
+            <h3 style="color:var(--main-color); margin-bottom: 20px;">एडमिन लॉगिन</h3>
+            <div style="text-align: left;">
+                <label style="font-weight: bold; font-size: 0.9rem;">मोबाइल नंबर (ID):</label>
+                <input type="number" id="admin-phone" placeholder="Mobile Number">
+                
+                <label style="font-weight: bold; font-size: 0.9rem; margin-top: 15px; display:block;">पासवर्ड:</label>
+                <input type="password" id="admin-password" placeholder="Password">
+            </div>
+            <button onclick="loginUser()">लॉगिन करें</button>
+            <p id="login-msg" style="color:red; margin-top:10px; font-size:0.9rem;"></p>
+        </div>
+
+        <div id="admin-dashboard" class="content-card" style="display: none;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="color:var(--main-color);">डैशबोर्ड</h3>
+                <button onclick="logoutUser()" class="logout-btn">Logout</button>
+            </div>
+            
+            <br>
+            <details open><summary style="cursor:pointer; padding:12px; background:#f0f0f0; border-radius:8px; font-weight:bold;">1. होम पेज बदलें (फोटो सहित) ✏️</summary>
+                <div style="padding:10px;">
+                    <input type="text" id="edit-name" placeholder="नाम">
+                    <input type="text" id="edit-alias" placeholder="उर्फ">
+                    <input type="text" id="edit-phone" placeholder="फोन">
+                    <input type="text" id="edit-slogan" placeholder="स्लोगन">
+                    <label style="font-size:0.8rem; font-weight:bold; color:#555; margin-top:10px; display:block;">मुखिया जी का फोटो (Link):</label>
+                    <input type="text" id="edit-main-photo" placeholder="Photo URL here">
+                    
+                    <button onclick="saveMainData()">सेव करें</button>
+                </div>
+            </details>
+            <br>
+            <details><summary style="cursor:pointer; padding:12px; background:#f0f0f0; border-radius:8px; font-weight:bold;">2. कार्यक्रम बदलें 📅</summary>
+                <div style="padding:10px;">
+                    <input type="text" id="edit-event-title" placeholder="कार्यक्रम का नाम">
+                    <input type="text" id="edit-event-date" placeholder="तारीख">
+                    <textarea id="edit-event-desc" rows="3" placeholder="विवरण"></textarea>
+                    <button onclick="saveEventData()">सेव करें</button>
+                </div>
+            </details>
+            <br>
+            <details><summary style="cursor:pointer; padding:12px; background:#f0f0f0; border-radius:8px; font-weight:bold;">3. फोटो मैनेज करें 📷</summary>
+                <div style="padding:10px;">
+                    <input type="text" id="new-image-url" placeholder="Paste URL here">
+                    <button onclick="addImageToGallery()">फोटो जोड़ें</button>
+                    <hr style="margin:20px 0;">
+                    <h4 style="color:#d32f2f; margin-bottom:10px;">फोटो हटाएं (Delete):</h4>
+                    <div class="admin-gallery-grid" id="admin-gallery-list"></div>
+                    <button onclick="add20DemoPhotos()" style="background:#009688; margin-top:20px; font-size:0.8rem;">20 डेमो फोटो डालें</button>
+                </div>
+            </details>
+        </div>
+    </section>
+
+    <footer><p>DEVELOPED BY <strong>DHIRAJ KUMAR 2026</strong></p></footer>
+
+    <script>
+        // --- 1. THEME LOGIC ---
+        function applyDailyTheme() {
+            const day = new Date().getDay();
+            const root = document.documentElement;
+            const themes = [
+                { main: '#ff9933', top: '#b35900', btn: '#d35400' }, 
+                { main: '#4285F4', top: '#0d47a1', btn: '#1565c0' }, 
+                { main: '#e53935', top: '#b71c1c', btn: '#c62828' }, 
+                { main: '#43a047', top: '#1b5e20', btn: '#2e7d32' }, 
+                { main: '#fbc02d', top: '#f57f17', btn: '#f9a825' }, 
+                { main: '#8e24aa', top: '#4a148c', btn: '#6a1b9a' }, 
+                { main: '#1a237e', top: '#000000', btn: '#283593' }  
+            ];
+            const t = themes[day];
+            if(t) {
+                root.style.setProperty('--main-color', t.main);
+                root.style.setProperty('--top-bar-color', t.top);
+                root.style.setProperty('--btn-color', t.btn);
+            }
+        }
+        applyDailyTheme();
+
+        // --- 2. FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCbBtZoRW-xw0ilK1rB0thtRrqKMgFZS4w",
+            authDomain: "mukhiya-panchayat-roh.firebaseapp.com",
+            databaseURL: "https://mukhiya-panchayat-roh-default-rtdb.firebaseio.com",
+            projectId: "mukhiya-panchayat-roh",
+            storageBucket: "mukhiya-panchayat-roh.firebasestorage.app",
+            messagingSenderId: "586597370927",
+            appId: "1:586597370927:web:8ae12da327d52b5787cada",
+            measurementId: "G-K2NXD883B2"
+        };
+        try { firebase.initializeApp(firebaseConfig); } catch (e) { console.error(e); }
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // --- 3. PAGE LOGIC ---
+        window.showPage = function(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-links li').forEach(li => li.classList.remove('active-btn'));
+            const target = document.getElementById(pageId);
+            if(target) target.classList.add('active');
+            const btn = document.getElementById('btn-' + pageId);
+            if(btn) btn.classList.add('active-btn');
+            window.scrollTo(0,0);
+        }
+        document.addEventListener("DOMContentLoaded", function() { showPage('home'); });
+
+        setInterval(() => {
+            const n = new Date();
+            document.getElementById('live-date').innerText = n.toLocaleDateString('hi-IN', {weekday:'short', day:'numeric', month:'short'});
+            document.getElementById('live-time').innerText = n.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+        }, 1000);
+
+        // --- 4. REAL-TIME DATA ---
+        db.ref('panchayatData/content').on('value', (s) => {
+            const d = s.val();
+            if(d) {
+                if(d.name) { document.getElementById('hero-name').innerText=d.name; document.getElementById('nav-title').innerText=d.name; document.getElementById('edit-name').value=d.name; }
+                if(d.alias) { document.getElementById('hero-alias').innerText=d.alias; document.getElementById('edit-alias').value=d.alias; }
+                if(d.phone) { document.getElementById('hero-phone').innerText=d.phone; document.getElementById('edit-phone').value=d.phone; }
+                if(d.slogan) { document.getElementById('hero-slogan').innerText=d.slogan; document.getElementById('edit-slogan').value=d.slogan; }
+                // NEW: UPDATE PHOTO LOGIC
+                if(d.photoUrl) {
+                    document.getElementById('main-photo').src = d.photoUrl;
+                    document.getElementById('nav-logo').src = d.photoUrl;
+                    document.getElementById('edit-main-photo').value = d.photoUrl;
+                }
+            }
+        });
+
+        db.ref('panchayatData/events').on('value', (s) => {
+            const d = s.val();
+            if(d) {
+                document.getElementById('event-title').innerText = d.title;
+                document.getElementById('event-date').innerText = d.date;
+                document.getElementById('edit-event-title').value = d.title;
+                document.getElementById('edit-event-date').value = d.date;
+            }
+        });
+
+        db.ref('panchayatData/gallery').on('value', (s) => {
+            const d = s.val();
+            const publicDiv = document.getElementById('gallery-container');
+            const adminDiv = document.getElementById('admin-gallery-list');
+            publicDiv.innerHTML = "";
+            if(adminDiv) adminDiv.innerHTML = "";
+            if(d) {
+                Object.entries(d).forEach(([key, imgData]) => {
+                    const img = document.createElement('img'); img.src = imgData.url;
+                    publicDiv.appendChild(img);
+                    if(adminDiv) {
+                        const wrap = document.createElement('div');
+                        wrap.className = 'admin-img-card';
+                        wrap.innerHTML = `<img src="${imgData.url}" style="width:100%; height:80px; object-fit:cover; border-radius:5px 5px 0 0;"><button onclick="deletePhoto('${key}')" class="delete-btn"><i class="fas fa-trash"></i> हटाएं</button>`;
+                        adminDiv.appendChild(wrap);
+                    }
+                });
+            } else { publicDiv.innerHTML = "<p>गैलरी खाली है।</p>"; }
+        });
+
+        // --- 5. ADMIN ACTIONS ---
+        window.loginUser = function() {
+            const p = document.getElementById('admin-phone').value;
+            const pass = document.getElementById('admin-password').value;
+            if(!p || !pass) { alert("कृपया विवरण भरें"); return; }
+            auth.signInWithEmailAndPassword(p+"@roh.com", pass)
+                .then(() => alert("स्वागत है!"))
+                .catch(e => alert("गलत पासवर्ड"));
+        }
+
+        auth.onAuthStateChanged(u => {
+            document.getElementById('login-section').style.display = u ? 'none' : 'block';
+            document.getElementById('admin-dashboard').style.display = u ? 'block' : 'none';
+        });
+
+        window.logoutUser = function() { auth.signOut(); }
+        
+        // SAVE MAIN DATA (Including Photo)
+        window.saveMainData = function() {
+            db.ref('panchayatData/content').update({
+                name: document.getElementById('edit-name').value,
+                alias: document.getElementById('edit-alias').value,
+                phone: document.getElementById('edit-phone').value,
+                slogan: document.getElementById('edit-slogan').value,
+                photoUrl: document.getElementById('edit-main-photo').value // Saving Photo URL
+            }).then(() => alert("सेव हो गया!"));
+        }
+
+        window.saveEventData = function() { db.ref('panchayatData/events').set({ title: document.getElementById('edit-event-title').value, date: document.getElementById('edit-event-date').value, description: document.getElementById('edit-event-desc').value }).then(() => alert("कार्यक्रम अपडेट!")); }
+        window.addImageToGallery = function() { const url = document.getElementById('new-image-url').value; if(url) db.ref('panchayatData/gallery').push({url: url}).then(() => { alert("फोटो जुड़ गई!"); document.getElementById('new-image-url').value = ""; }); }
+        window.deletePhoto = function(key) { if(confirm("फोटो हटा दें?")) db.ref('panchayatData/gallery/' + key).remove(); }
+        window.add20DemoPhotos = function() { if(confirm("डेमो फोटो जोड़ें?")) for(let i=1; i<=20; i++) db.ref('panchayatData/gallery').push({url: `https://picsum.photos/300/200?random=${Date.now()+i}`}); }
+    </script>
+</body>
+</html>
